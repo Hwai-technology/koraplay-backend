@@ -1,12 +1,12 @@
-# 🗄️ مخطط وهندسة قاعدة البيانات (Relational Database Schema)
+# 🗄️ Relational Database Schema & Data Architecture
 
-يعتمد تطبيق **KoraPlay** على محرك **PostgreSQL** عبر Kora ORM للبيانات الدائمة، مع ضمان القيود التنافسية وحماية النزاهة المرجعية (Referential Integrity).
+**KoraPlay** utilizes **PostgreSQL** via Kora ORM for persistent data storage, guaranteeing ACID transactions, concurrency constraints, and referential integrity.
 
 ---
 
-## 1. الكيانات والجداول الرئيسية (Entities & Tables)
+## 1. Core Entities & Relational Tables
 
-### أ. جدول المستخدمين والجلسات (`users` & `auth_sessions`)
+### A. Users & Authentication (`users` & `refresh_tokens`)
 - **`users`**:
   - `id`: `BIGSERIAL PRIMARY KEY`
   - `email`: `VARCHAR(255) UNIQUE NOT NULL`
@@ -24,7 +24,7 @@
 
 ---
 
-### ب. جدول الكويزات وبنك الأسئلة (`quizzes` & `questions`)
+### B. Quizzes & Question Bank (`quizzes`, `quiz_versions`, `questions`, `question_answers`)
 - **`quizzes`**:
   - `id`: `BIGSERIAL PRIMARY KEY`
   - `owner_id`: `BIGINT REFERENCES users(id) ON DELETE RESTRICT`
@@ -38,7 +38,7 @@
   - `id`: `BIGSERIAL PRIMARY KEY`
   - `quiz_id`: `BIGINT REFERENCES quizzes(id) ON DELETE CASCADE`
   - `version_number`: `INT NOT NULL`
-  - `snapshot_data`: `JSONB NOT NULL` (تجميد كامل لكافة أسئلة وخيارات الاختبار)
+  - `snapshot_data`: `JSONB NOT NULL` (Complete immutable freeze of all questions and choices)
   - `published_at`: `TIMESTAMP WITH TIME ZONE DEFAULT NOW()`
 - **`questions`**:
   - `id`: `BIGSERIAL PRIMARY KEY`
@@ -58,7 +58,7 @@
 
 ---
 
-### ج. محرك الجلسات الحية والتنافس (`game_sessions`, `participants`, `answers`)
+### C. Live Game Sessions & Participant State (`game_sessions`, `game_participants`, `participant_answers`)
 - **`game_sessions`**:
   - `id`: `BIGSERIAL PRIMARY KEY`
   - `quiz_version_id`: `BIGINT REFERENCES quiz_versions(id) ON DELETE RESTRICT`
@@ -68,7 +68,8 @@
   - `current_question_index`: `INT DEFAULT 0`
   - `started_at`: `TIMESTAMP WITH TIME ZONE`
   - `finished_at`: `TIMESTAMP WITH TIME ZONE`
-  - **قيد فريد مشروط:** `CREATE UNIQUE INDEX idx_unique_active_pin ON game_sessions(game_pin) WHERE status NOT IN ('FINISHED', 'CANCELLED');`
+  - **Conditional Unique Index:**
+    `CREATE UNIQUE INDEX idx_unique_active_pin ON game_sessions(game_pin) WHERE status NOT IN ('FINISHED', 'CANCELLED');`
 - **`game_participants`**:
   - `id`: `BIGSERIAL PRIMARY KEY`
   - `session_id`: `BIGINT REFERENCES game_sessions(id) ON DELETE CASCADE`
@@ -78,7 +79,7 @@
   - `current_streak`: `INT DEFAULT 0`
   - `is_connected`: `BOOLEAN DEFAULT TRUE`
   - `joined_at`: `TIMESTAMP WITH TIME ZONE DEFAULT NOW()`
-  - **قيد فريد:** `UNIQUE(session_id, nickname)`
+  - **Unique Constraint:** `UNIQUE(session_id, nickname)`
 - **`participant_answers`**:
   - `id`: `BIGSERIAL PRIMARY KEY`
   - `session_id`: `BIGINT REFERENCES game_sessions(id) ON DELETE CASCADE`
@@ -89,20 +90,20 @@
   - `points_awarded`: `INT DEFAULT 0`
   - `time_taken_ms`: `INT NOT NULL`
   - `submitted_at`: `TIMESTAMP WITH TIME ZONE DEFAULT NOW()`
-  - **قيد فريد صارم لمنع تكرار الإجابة:**
+  - **Strict Unique Constraint (Anti-Duplicate Submission):**
     `UNIQUE(session_id, participant_id, question_id)`
 
 ---
 
-## 2. المؤشرات الحيوية لتحسين الأداء (High-Throughput Indexes)
+## 2. High-Throughput Performance Indexes
 
 ```sql
--- سرعة الاستعلام عن الجلسة بواسطة الـ PIN
+-- Fast session lookup by PIN and active status
 CREATE INDEX idx_game_sessions_pin_status ON game_sessions(game_pin, status);
 
--- سرعة جلب جميع متسابقي الجلسة وترتيب المتصدرين
+-- Fast retrieval of session participants and leaderboard ordering
 CREATE INDEX idx_participants_leaderboard ON game_participants(session_id, total_score DESC);
 
--- سرعة فحص إجابات سؤال معين أثناء انتهاء الوقت
+-- Fast evaluation of answers for a specific session question at timer expiration
 CREATE INDEX idx_answers_session_question ON participant_answers(session_id, question_id);
 ```

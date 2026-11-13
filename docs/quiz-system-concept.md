@@ -1,111 +1,111 @@
-# 🧠 التصور المعماري الشامل لمنظومة الأسئلة والاختبارات (Quiz & Assessment Engine)
+# 🧠 Comprehensive Architectural Concept for the Quiz & Assessment Engine
 
 ---
 
-## 1. الفلسفة العامة (System Philosophy)
+## 1. System Philosophy
 
-في منصة **KoraPlay**، لا يُعامل "الاختبار" على أنه مجرد نموذج استبيان بسيط، بل كـ **كيان تعليمي ديناميكي وتنافسي** يجمع بين ثلاثة أبعاد حاسمة:
+In **KoraPlay**, a "quiz" is not treated as a trivial survey form, but rather as a **dynamic, competitive learning artifact** balancing three vital design pillars:
 
-1. **العدالة المطلقة (Server Authoritative & Deterministic):**
-   الخادم المكتوب بلغة Kora هو المصدر الوحيد للحقيقة. العميل (Client) لا يمتلك أي صلاحية لحساب نتيجته، ولا يتلقى إطلاقاً مؤشرات الإجابة الصحيحة قبل الإغلاق الرسمي لعداد وقت السؤال.
-2. **التنوع الإدراكي في أنواع الأسئلة:**
-   تجاوز الأسئلة التقليدية (اختيار من متعدد فقط) لتقديم أسئلة تعتمد على الترتيب المنطقي، الأسئلة البصرية، الإجابات النصية القصيرة، والتحديات البرمجية والمعادلات.
-3. **تجميد النسخ الحية (Immutable Live Snapshots):**
-   عندما يطلق المعلم مسابقة مباشرة من اختبار يحتوي 20 سؤالاً، يتم أخذ نسخة مجمدة فورية (`QuizVersionSnapshot`). إذا قام المعلم بتعديل أو حذف أي سؤال في لوحة التحكم أثناء سير اللعبة، فإن الجلسة الحية تظل معزولة تماماً وتعمل على النسخة الأصلية دون أي تضارب بيانات أو أخطاء حسابية.
+1. **Server-Authoritative & Deterministic Fairness:**
+   The Kora backend serves as the single source of truth. Clients have no authority to compute their own scores, and under no circumstances do they receive indicators of the correct answers before the server officially closes the question timer.
+2. **Cognitive Diversity in Question Types:**
+   Moving beyond standard multiple-choice questions to support logical ordering, visual blur-reveal identification, short text matching, and code/math evaluations.
+3. **Immutable Live Snapshots:**
+   When a teacher initiates a live competition from a quiz, the system takes an instantaneous, immutable copy (`QuizVersionSnapshot`). Even if the author edits or deletes questions in the management dashboard while the competition is underway, the active game session remains fully isolated, running on the frozen version without data drift or scoring corruption.
 
 ---
 
-## 2. دورة حياة الاختبار (Quiz Lifecycle)
+## 2. Quiz Lifecycle
 
 ```text
   [ DRAFT ] ───────────► [ PUBLISHED ] ───────────► [ LIVE SNAPSHOT ]
      │                         │                           │
      ▼                         ▼                           ▼
-- إضافة/تعديل الأسئلة     - متاح للبحث والمشاركة        - نسخة غير قابلة للتعديل
-- حفظ مسودة مستمر         - تكوين الإعدادات العامة      - مرتبطة بـ GameSession
-- لا يمكن استخدامه لايف   - يمكن استخدامه لجلسات        - تحتفظ بالنقاط والترتيب الأصلي
+- Add / edit questions    - Searchable & shareable      - Immutable frozen copy
+- Continuous autosave     - Configure global settings   - Bound to GameSession
+- Cannot run live yet     - Ready for game launches     - Preserves original scoring & state
 ```
 
-### حالات الاختبار:
-- `DRAFT`: قيد الإنشاء من قبل المعلم، غير متاح للألعاب العامة.
-- `PUBLISHED`: جاهز للاستخدام، ومفهرس حسب الفئة والتصنيف ومستوى الصعوبة.
-- `ARCHIVED`: محفوظ تاريخياً ولا يمكن إطلاق جلسات جديدة منه ولكن يمكن استعراض نتائجه السابقة.
+### Quiz States:
+- `DRAFT`: Under authoring by the teacher; hidden from live game sessions.
+- `PUBLISHED`: Verified and ready for deployment; indexed by category, tags, and difficulty.
+- `ARCHIVED`: Preserved for historical analytics; cannot spawn new live sessions, but past performance records remain viewable.
 
 ---
 
-## 3. تصنيف وأنواع الأسئلة المدعومة (Question Types Spectrum)
+## 3. Question Types Spectrum
 
-| نوع السؤال | المعرّف (Enum) | الوصف وطريقة التحقق | نظام احتساب النقاط |
+| Question Type | Enum Identifier | Verification Strategy | Scoring Mechanism |
 |---|---|---|---|
-| **اختيار أحادي** | `SINGLE_CHOICE` | اختيار خيار واحد صحيح من بين 2 إلى 6 خيارات | نقاط كاملة + بونص السرعة |
-| **اختيار متعدد** | `MULTIPLE_CHOICE` | اختيار أكثر من خيار صحيح مع خيارات مضللة | نقاط جزئية أو كاملة (مع خصم في حال اختيار خيار خاطئ) |
-| **صح أو خطأ** | `TRUE_FALSE` | خياران ثنائيان مباشر وسريع | نقاط قياسية مع مهلة زمنية قصيرة |
-| **إجابة نصية قصيرة** | `SHORT_ANSWER` | كتابة كلمة أو مصطلح مع مطابقة مرنة (Regex / Case-Insensitive) | نقاط كاملة عند مطابقة الكلمة المفتاحية |
-| **سؤال بصري** | `IMAGE_QUESTION` | صورة أو رسم بياني تظهر مع تأثير كشف تدريجي (Blur Reveal) | نقاط أعلى للأسرع في التخمين |
-| **الترتيب المنطقي** | `ORDERING` | ترتيب 4 إلى 6 عناصر بترتيب زمني أو منطقي صحيح | درجات تعتمد على دقة الترتيب (Levenshtein Distance / Order matches) |
-| **استطلاع رأي** | `POLL` | جمع آراء المتسابقين بدون إجابة صحيحة أو خاطئة | نقاط مشاركة ثابتة لجميع المشاركين |
-| **تحدي برمجي/معادلة** | `CODE_CHALLENGE` | مطابقة ناتج كود برمجي أو حل مسألة رياضية دقيقة | بونص استثنائي للدقة وسرعة الحل |
+| **Single Choice** | `SINGLE_CHOICE` | Single correct option selected from 2 to 6 choices | Full base points + speed decay bonus |
+| **Multiple Choice** | `MULTIPLE_CHOICE` | Multiple correct options with distractor choices | Partial or full scoring with penalties for false positives |
+| **True / False** | `TRUE_FALSE` | Binary quick decision | Standard points with condensed timer |
+| **Short Answer** | `SHORT_ANSWER` | Text entry with flexible normalization (Regex / Case-Insensitive) | Full points upon verified keyword or regex match |
+| **Visual Reveal** | `IMAGE_QUESTION` | Image or diagram revealed progressively via blur-to-sharp animation | Higher score for faster identification |
+| **Logical Ordering** | `ORDERING` | Sequence 4 to 6 items chronologically or procedurally | Graded on positional accuracy (Levenshtein / relative order match) |
+| **Live Poll** | `POLL` | Collect participant sentiment with no right or wrong answer | Flat participation points awarded to all respondents |
+| **Code / Math Challenge** | `CODE_CHALLENGE` | Exact output verification for algorithms or mathematical expressions | Premium bonus for syntax precision and rapid solving |
 
 ---
 
-## 4. المحرك الرياضي لحساب النقاط (Mathematical Scoring Engine)
+## 4. Mathematical Scoring Engine
 
-يعتمد المحرك على خوارزمية توازن بين **صحة الإجابة** و**سرعة التفكير والبديهة** و**سلسلة الإجابات الصحيحة المتتالية (Streaks)**:
+The scoring engine balances **correctness**, **reaction speed**, and **consecutive correct streaks**:
 
-### 1. معادلة احتساب النقاط للسؤال:
+### 1. Per-Question Score Equation:
 $$Score = (BasePoints \times AccuracyFactor) + TimeBonus + StreakBonus$$
 
-### 2. معادلة بونص السرعة (Speed Bonus Decay):
-إذا كانت مهلة السؤال الكلية $T_{total}$ (مثلاً 20 ثانية)، واستغرق المتسابق زمناً قدره $T_{response}$ (مثلاً 4 ثوانٍ):
+### 2. Speed Bonus Decay:
+Given a total question time limit $T_{total}$ (e.g., 20 seconds), and a participant response time $T_{response}$ (e.g., 4 seconds):
 
 $$TimeBonus = \left( 1 - \frac{T_{response}}{T_{total}} \right) \times MaxTimeBonus$$
 
-*مثال عملي:*
-- $BasePoints = 1000$ نقطة.
-- $MaxTimeBonus = 500$ نقطة.
-- مهلة السؤال = 20 ثانية.
-- زمن إجابة المتسابق = 5 ثوانٍ.
-- $TimeBonus = (1 - 5/20) \times 500 = 0.75 \times 500 = 375$ نقطة.
-- الناتج الإجمالي للسؤال = $1000 + 375 = 1375$ نقطة.
+*Practical Example:*
+- $BasePoints = 1000$ points.
+- $MaxTimeBonus = 500$ points.
+- Question Time Limit = 20 seconds.
+- Participant Response Time = 5 seconds.
+- $TimeBonus = (1 - 5/20) \times 500 = 0.75 \times 500 = 375$ points.
+- Total Question Score = $1000 + 375 = 1375$ points.
 
-### 3. مضاعف السلسلة المتتالية (Streak Multiplier):
-لتشجيع الحماس والاستمرارية، يحصل المتسابق على مضاعف تصاعدي لكل إجابة صحيحة متتالية:
-- **سلسلة 1 - 2:** بدون مضاعف إضافي ($1.0\times$).
-- **سلسلة 3 إجابات:** بونص $+100$ نقطة (Fire Streak 🔥).
-- **سلسلة 5 إجابات:** بونص $+250$ نقطة (Super Streak ⚡).
-- **سلسلة 10 إجابات:** بونص $+500$ نقطة (Unstoppable 🏆).
-- في حال الإجابة الخاطئة، يعود عداد السلسلة تلقائياً إلى صفر.
+### 3. Streak Multipliers:
+To encourage sustained focus and engagement, participants receive ascending bonuses for consecutive correct answers:
+- **Streak 1 - 2:** Standard points ($1.0\times$ multiplier).
+- **Streak 3:** $+100$ bonus points (Fire Streak 🔥).
+- **Streak 5:** $+250$ bonus points (Super Streak ⚡).
+- **Streak 10:** $+500$ bonus points (Unstoppable 🏆).
+- On any incorrect answer, the streak counter resets to zero immediately.
 
 ---
 
-## 5. ميكانيكية منع الغش والتلاعب (Anti-Cheating Architecture)
+## 5. Anti-Cheating Architecture
 
-### أ. مبدأ انعدام المعرفة المسبقة (Zero-Knowledge Frontend Distribution)
-- عند انتقال السيرفر لحالة `QUESTION_ACTIVE` وبث حزمة بيانات السؤال عبر الـ WebSocket، تحتوي الحزمة فقط على:
-  - معرّف السؤال (`questionId`).
-  - نص السؤال والوسائط المرفقة.
-  - قائمة الخيارات مع معرّفاتها العشوائية (مع خلط الترتيب لكل متسابق لمنع الغش بالنظر إلى شاشة الجار).
-  - العداد الزمني.
-- **لا يتم تضمين أي حقل `is_correct` أو أي مؤشر للإجابة إطلاقاً في الحزمة المرسلة.**
+### A. Zero-Knowledge Frontend Distribution
+- When the server enters `QUESTION_ACTIVE` and broadcasts the question payload over WebSockets, the payload strictly includes:
+  - Question identifier (`questionId`).
+  - Question prompt and media asset URLs.
+  - Shuffled choices with obfuscated option identifiers (unique order per participant to deter screen-peeking).
+  - Time limit.
+- **Under no circumstances is `is_correct` or any hint transmitted in this payload.**
 
-### ب. الطوابع الزمنية الموثوقة من جانب الخادم (Server-Side Timestamping)
-- لا يعتمد الخادم على ساعة جهاز المتسابق أو المتصفح.
-- عند إطلاق السؤال، يسجل السيرفر `question_started_at` بدقة الميكروثانية.
-- عند وصول حزمة `SUBMIT_ANSWER` من المتسابق، يحسب السيرفر فوراً:
+### B. Server-Authoritative Timestamping
+- The server does not trust client device clocks.
+- When broadcasting a question, the server records `question_started_at` with microsecond precision.
+- Upon receiving a `SUBMIT_ANSWER` payload, the server computes:
   $$Elapsed = ReceivedAt - StartedAt$$
-- إذا وصل الرد بعد انقضاء الوقت الرسمي مع هامش تسامح بسيط للشبكة ($\Delta t \le 200ms$)، تُرفض الإجابة وتسجل كـ `TIMEOUT`.
+- If the submission arrives after the official deadline plus a strict network latency tolerance window ($\Delta t \le 200\text{ms}$), the answer is rejected and recorded as a `TIMEOUT`.
 
-### ج. مفاتيح عدم التكرار (Idempotency Protection)
-- يمنع السيرفر إرسال إجابتين لنفس السؤال من نفس المتسابق في نفس الجلسة بفضل قيد قاعدة البيانات:
+### C. Idempotency Protection
+- Double submissions from the same participant for the same question are rejected at both the application layer and via the database unique index:
   `UNIQUE(session_id, participant_id, question_id)`
-  مما يمنع هجمات السباق (Race Conditions) والنقر المتعدد.
+  This prevents race conditions, multi-click exploits, and replay attempts.
 
 ---
 
-## 6. التحليلات الإحصائية المتقدمة للأسئلة (Post-Game Analytics)
+## 6. Post-Game Analytics
 
-توفر المنصة للمعلم تحليلات تفصيلية بعد انتهاء الاختبار تشمل:
-1. **مؤشر صعوبة السؤال (Difficulty Index):** نسبة المتسابقين الذين أجابوا بشكل صحيح.
-2. **تحليل المشتتات (Distractor Analysis):** أي الخيارات الخاطئة كان الأكثر خداعاً للمتسابقين، مما يساعد المعلم على كشف المفاهيم الخاطئة الشائعة لدى الطلاب.
-3. **متوسط زمن الاستجابة (Mean Reaction Time):** معرفة الأسئلة التي استغرقت تفكيراً طويلاً مقارنة بالأسئلة البديهية.
-4. **منحنى الأداء التنافسي (Leaderboard Fluctuations):** رسم بياني لصعود وهبوط مراكز الطلاب من السؤال الأول حتى الأخير.
+Following game completion, comprehensive metrics are generated for instructors:
+1. **Question Difficulty Index:** The percentage of participants who answered correctly.
+2. **Distractor Analysis:** Frequency distribution of incorrect choices selected, revealing widespread student misconceptions.
+3. **Mean Reaction Time:** Identification of questions requiring deeper cognitive processing versus immediate recall.
+4. **Leaderboard Fluctuations:** Trajectory graphing rank volatility from the opening round to the final question.

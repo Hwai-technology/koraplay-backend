@@ -1,23 +1,23 @@
 # 🎮 KoraPlay — Enterprise Realtime Interactive Learning & Quiz Platform
-### المبنية بالكامل باستخدام لغة وبرمجيات كورا (Kora Programming Language & Framework)
+### Built 100% natively using the Kora Programming Language & Framework
 
 ---
 
-## 🌟 نظرة عامة ورؤية المشروع (Project Vision)
+## 🌟 Project Vision & Overview
 
-**KoraPlay** هي منصة تعليمية وتنافسية تفاعلية متكاملة في الوقت الفعلي (Real-time Interactive Learning & Quiz Platform) مستوحاة من منصات عالمية مثل *Kahoot!* و *Quizizz*، ولكن بهوية تقنية فريدة ومعمارية برمجية صارمة مبنية **بالكامل بنسبة 100% باستخدام لغة Kora**.
+**KoraPlay** is an enterprise-grade, server-authoritative, real-time interactive learning and quiz platform inspired by global platforms like *Kahoot!* and *Quizizz*, engineered with a distinct technical identity and strict architectural standards built **100% natively using the Kora Programming Language**.
 
-الهدف الأساسي ليس مجرد تطبيق أسئلة واختبارات بسيط، بل هو **الإثبات الواقعي الأكبر (Definitive Real-World Benchmark)** لقدرة لغة Kora على مواجهة التحديات الهندسية المتقدمة في الخوادم:
-- **تزامن كثيف (High Concurrency):** إدارة آلاف المتسابقين في نفس اللحظة عبر الـ WebSockets.
-- **محرك قرارات حاسم بالخادم (Server-Authoritative Engine):** احتساب النقاط، قياس الفروق الزمنية بالملي ثانية، ومنع أي تلاعب أو غش من جهة العميل.
-- **معمارية معيارية نظيفة (Strict Clean Architecture):** فصل صارم بين الطبقات (Controllers, Services, Repositories, Domain Models, Enums) مفروض آلياً من مترجم Kora.
-- **تخزين هجين موثوق:** PostgreSQL للبيانات الدائمة غير القابلة للضياع، مع Redis لإدارة الحالات اللحظية السريعة.
+The primary objective is not merely a quiz application, but rather the **Definitive Real-World Benchmark** proving Kora's capabilities in tackling advanced backend engineering challenges:
+- **High Concurrency:** Managing thousands of concurrent participants simultaneously via WebSockets.
+- **Server-Authoritative Engine:** Computing scores, measuring millisecond-level time differentials, and preventing client-side tampering or cheating.
+- **Strict Clean Architecture:** Strict layer separation (Controllers, Services, Repositories, Domain Models, Enums) compiler-enforced by Kora.
+- **Reliable Hybrid Persistence:** PostgreSQL for durable, non-volatile data alongside Redis for high-speed ephemeral state management.
 
 ---
 
-## 🏛️ الهيكل المعماري للنظام (System Architecture)
+## 🏛️ System Architecture
 
-يعتمد مشروع KoraPlay على معمارية الـ **Modular Clean Monolith**، حيث تُقسّم النطاقات الوظيفية (Domain Features) إلى وحدات مستقلة تماماً يمكن تحويل أي منها مستقبلاً إلى Microservice عند الحاجة:
+KoraPlay adopts a **Modular Clean Monolith** architecture, where domain features are partitioned into fully isolated modules that can be extracted into microservices in the future if required:
 
 ```text
                                   ┌──────────────────────────┐
@@ -49,92 +49,92 @@
 
 ---
 
-## 🎯 الميزات الرئيسية للمنصة (Core Capabilities)
+## 🎯 Core Capabilities
 
-### 1. منظومة الأسئلة والاختبارات الفائقة (Quiz & Assessment Engine)
-- دعم أنواع أسئلة متعددة: اختيار من متعدد، صح/خطأ، إجابة كتابية، ترتيب تسلسلي، استطلاعات رأي، وأسئلة وسائط (صور/فيديو/معادلات).
-- **النسخ المتجمدة (Immutable Quiz Snapshots):** بمجرد بدء لعبة حية، يتم أخذ لقطة غير قابلة للتعديل من الاختبار لمنع تأثر الجلسة بأي تعديل يقوم به المعلم أثناء المسابقة.
-- معايير تقييم ذكية وبونص السرعة ومضاعفات السلسلة المتتالية (Streak Multipliers).
+### 1. Quiz & Assessment Engine
+- Support for diverse question types: Single Choice, Multiple Choice, True/False, Short Answer, Ordering, Polls, and Media Questions (Images/Video/Formulas).
+- **Immutable Quiz Snapshots:** Upon launching a live game session, an immutable snapshot of the quiz is captured, preventing live games from being affected by subsequent teacher edits.
+- Intelligent evaluation criteria with speed decay bonuses and streak multipliers.
 
-### 2. محرك الجلسات المباشرة والألعاب اللحظية (Live Game Sessions)
-- توليد رمز لعبة مكون من 6 أرقام (Unique 6-digit Game PIN) مع حماية ضد التخمين والتكرار.
-- انضمام فوري للمتسابقين كضيوف (Guest Participants) باسم مستعار دون الحاجة لتسجيل حساب.
-- آلة حالات صارمة (Finite State Machine):
+### 2. Live Game Sessions Engine
+- Unique 6-digit Game PIN generation with collision prevention and brute-force protection.
+- Instant guest participant onboarding using a nickname without requiring account registration.
+- Deterministic Finite State Machine (FSM):
   `CREATED` ➔ `WAITING_FOR_PLAYERS` ➔ `STARTING` ➔ `QUESTION_ACTIVE` ➔ `QUESTION_CLOSED` ➔ `LEADERBOARD` ➔ `FINISHED`.
-- تسامح عالي مع انقطاع الاتصال (Reconnection Tolerance) للمتسابقين والمضيف دون فقدان النقاط.
+- High reconnection tolerance for participants and hosts without losing accumulated scores.
 
-### 3. الأمان والحماية الصارمة (Security & Anti-Cheating)
-- **منع تسريب الإجابات:** لا يتم إرسال الإجابة الصحيحة أو حتى الإشارة إليها للعملاء إلا بعد إغلاق عداد وقت السؤال رسمياً من الخادم.
-- **توقيع وتشفير الطوابع الزمنية:** منع التلاعب بتوقيت الإجابة عبر احتساب وقت وصول الحزمة ومطابقته مع ساعة السيرفر.
-- حماية ضد الهجمات المتكررة (Idempotency Keys & Replay Attack Defense).
+### 3. Security & Anti-Cheating
+- **Zero-Knowledge Answer Distribution:** The correct answer is never transmitted or hinted to clients until the server officially closes the question timer.
+- **Server-Authoritative Timestamping:** Answer timing tampering is prevented by calculating arrival deltas against the server clock.
+- Idempotency keys and replay attack defense mechanisms.
 
 ---
 
-## 📂 هيكلية الملفات وتوزيع النطاقات
+## 📂 Project Directory Structure
 
 ```text
 real project/koraplay/
-├── kora.toml                         # ملف تعريف المشروع وتبعيّات لغة Kora
-├── Dockerfile                        # بناء حاوية بيئة التشغيل
-├── docker-compose.yml                # إعداد خوادم PostgreSQL و Redis
-├── docs/                             # التوثيق الفني الشامل والتصورات المعمارية
-│   ├── architecture.md               # التصميم المعماري وحدود الموديولات
-│   ├── quiz-system-concept.md        # التصور العميق لمنظومة الأسئلة والاختبارات
-│   ├── game-engine-lifecycle.md      # دورة حياة اللعبة وآلة الحالات اللحظية
-│   ├── websocket-protocol.md         # مواصفات أحداث ومراسلات الـ WebSockets
-│   ├── database-schema.md            # المخطط العلائقي لقواعد البيانات والمؤشرات
-│   ├── api-specification.md          # توثيق نقاط النهاية لـ REST API v1
-│   └── KORA_LANGUAGE_EVALUATION.md   # سجل تقييم لغة Kora وقدرات المترجم
+├── kora.toml                         # Kora project manifest and dependencies
+├── Dockerfile                        # Production container runtime configuration
+├── docker-compose.yml                # PostgreSQL and Redis orchestration
+├── docs/                             # Comprehensive architectural and technical documentation
+│   ├── architecture.md               # Clean architecture design and module boundaries
+│   ├── quiz-system-concept.md        # In-depth quiz and assessment engine specification
+│   ├── game-engine-lifecycle.md      # Live game engine lifecycle & state machine
+│   ├── websocket-protocol.md         # WebSocket protocol specification and event contracts
+│   ├── database-schema.md            # Relational database schema and index optimization
+│   ├── api-specification.md          # REST API v1 endpoint specifications
+│   └── KORA_LANGUAGE_EVALUATION.md   # Kora language capabilities and compiler benchmarks
 ├── src/
-│   ├── main.kora                     # نقطة الدخول وتهيئة الخادم والمسارات
-│   ├── enums/                        # الثوابت المعمارية والحالات
+│   ├── main.kora                     # Application entry point, server boot & routing
+│   ├── enums/                        # System constants and domain states
 │   │   ├── http_status.kora
 │   │   ├── user_role.kora
 │   │   ├── question_type.kora
 │   │   └── session_status.kora
-│   ├── models/                       # النماذج العامة وأغلفة الردود
+│   ├── models/                       # Shared DTOs and response envelopes
 │   │   └── response_envelope.kora
-│   ├── shared/services/              # الخدمات العامة (التسجيل والتشفير)
+│   ├── shared/services/              # Cross-cutting services (Logging, Crypto)
 │   │   └── logger_service.kora
-│   └── features/                     # موديولات النطاق المعماري (Clean Features)
-│       ├── users/                    # إدارة المستخدمين والتوثيق
-│       ├── quizzes/                  # إدارة الكويزات وبنك الأسئلة
-│       ├── games/                    # محرك الجلسات والتنافس الحي
-│       └── scoring/                  # محرك احتساب النقاط والمتصدرين
+│   └── features/                     # Clean architecture domain feature modules
+│       ├── users/                    # Identity, authentication, and RBAC
+│       ├── quizzes/                  # Quiz authoring and question bank management
+│       ├── games/                    # Live game sessions and room state coordination
+│       └── scoring/                  # Point computation, streaks, and leaderboards
 ```
 
 ---
 
-## 🛠️ أوامر التشغيل السريع عبر Kora CLI
+## 🛠️ Quick Start with Kora CLI
 
-تم بناء KoraPlay باستخدام أدوات المترجم الرسمية لـ **Kora Toolchain (v0.2.0)**:
+KoraPlay is built using official tools from the **Kora Toolchain (v0.2.0)**:
 
 ```bash
-# 1. فحص سلامة النحو والأنواع والملكية (Ownership & Purity)
+# 1. Type check, syntax verification, and ownership analysis
 ./target/release/kora check "real project/koraplay/src/main.kora"
 
-# 2. تشغيل جناح الاختبارات الآلية
+# 2. Run automated test suite
 ./target/release/kora test "real project/koraplay"
 
-# 3. تشغيل الخادم في وضع التطوير المحلي
+# 3. Start development server
 ./target/release/kora run "real project/koraplay/src/main.kora"
 
-# 4. تشغيل خادم التطوير مع إعادة التحميل التلقائي (Hot-Reload)
+# 4. Start development server with hot-reload
 ./target/release/kora watch "real project/koraplay/src/main.kora"
 
-# 5. توليد توثيق OpenAPI / Swagger UI تلقائياً
+# 5. Generate OpenAPI 3.1 schema and Swagger UI documentation
 ./target/release/kora swagger "real project/koraplay/src/main.kora"
 ```
 
 ---
 
-## 📈 خارطة الطريق ومراحل التطوير (Roadmap)
+## 📈 Roadmap & Development Milestones
 
-- [x] **المرحلة 1:** تأسيس المشروع، تهيئة Clean Architecture، وإعداد وثائق التصور الفني الشاملة.
-- [ ] **المرحلة 2:** بناء نظام المصادقة، هوية المستخدمين، وتأمين كلمات المرور عبر Argon2id.
-- [ ] **المرحلة 3:** موديول بنك الأسئلة، أنواع الأسئلة المتعددة، ونظام الـ Snapshots.
-- [ ] **المرحلة 4:** محرك الجلسات الحية، توليد الـ PIN، وغرف التنافس المباشرة.
-- [ ] **المرحلة 5:** بوابة الـ WebSockets اللحظية وبث أحداث الأسئلة والعدادات.
-- [ ] **المرحلة 6:** محرك احتساب النقاط، احتساب الفروق الزمنية، وبث الـ Leaderboard المباشر.
-- [ ] **المرحلة 7:** التحليلات الإحصائية المتقدمة، نظام الأوسمة والبطولات (Tournaments).
-- [ ] **المرحلة 8:** اختبارات الحمل العالي (Load Testing)، تعزيز الأمان، ونشر بيئة الإنتاج.
+- [x] **Milestone 1:** Project scaffolding, Clean Architecture setup, and complete architectural documentation.
+- [ ] **Milestone 2:** Authentication system, user identity, and Argon2id password security.
+- [ ] **Milestone 3:** Question bank module, multi-type questions, and snapshot versioning engine.
+- [ ] **Milestone 4:** Live game session engine, PIN generation, and real-time room lifecycle.
+- [ ] **Milestone 5:** Real-time WebSocket gateway and event streaming for questions and timers.
+- [ ] **Milestone 6:** Scoring engine, time-decay bonus calculation, and live leaderboard broadcast.
+- [ ] **Milestone 7:** Advanced analytics, achievement badges, and tournament mode.
+- [ ] **Milestone 8:** High-concurrency load testing, security hardening, and production deployment.

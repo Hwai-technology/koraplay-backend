@@ -1,83 +1,83 @@
-# 🕹️ دورة حياة محرك الجلسات الحية (Game Engine & Session Lifecycle)
+# 🕹️ Game Engine & Live Session Lifecycle
 
 ---
 
-## 1. آلة الحالات المنطقية للجلسة (Finite State Machine)
+## 1. Finite State Machine (FSM)
 
-تخضع كل جلسة لعبة في **KoraPlay** إلى دورة حياة صارمة تدار عبر محرك الحالات (State Machine) داخل الخادم بلغة Kora:
+Every game session in **KoraPlay** adheres to a deterministic lifecycle managed by a server-authoritative state machine implemented in Kora:
 
 ```text
        ┌───────────┐
        │  CREATED  │
        └─────┬─────┘
-             │ (توليد الـ PIN وفتح غرفة الانتظار)
+             │ (Generate PIN & open lobby)
              ▼
   ┌───────────────────────┐
-  │  WAITING_FOR_PLAYERS  │ ◄─────── (انضمام اللاعبين عبر الـ PIN)
+  │  WAITING_FOR_PLAYERS  │ ◄─────── (Players join via PIN)
   └──────────┬────────────┘
-             │ (المعلم يضغط Start Game)
+             │ (Host clicks 'Start Game')
              ▼
        ┌───────────┐
-       │ STARTING  │ (عد تنازلي تمهيدي: 3.. 2.. 1)
+       │ STARTING  │ (Introductory countdown: 3.. 2.. 1)
        └─────┬─────┘
              │
              ├────────────────────────────────────────┐
-             ▼                                        │ (عند وجود أسئلة تالية)
+             ▼                                        │ (When next questions exist)
   ┌───────────────────────┐                           │
   │    QUESTION_ACTIVE    │ ◄─────────────────────────┘
   └──────────┬────────────┘
-             │ (انتهاء العداد أو إجابة جميع المتسابقين)
+             │ (Timer expires or all participants have answered)
              ▼
   ┌───────────────────────┐
-  │    QUESTION_CLOSED    │ (حساب الدرجات + كشف الإجابة الصحيحة)
+  │    QUESTION_CLOSED    │ (Calculate scores + reveal correct answer)
   └──────────┬────────────┘
              │
              ▼
   ┌───────────────────────┐
-  │      LEADERBOARD      │ (عرض ترتيب أفضل المتسابقين وبث التحديثات)
+  │      LEADERBOARD      │ (Display top rankings & broadcast updates)
   └──────────┬────────────┘
-             │ (إذا كان هذا السؤال الأخير)
+             │ (If this was the final question)
              ▼
        ┌───────────┐
-       │ FINISHED  │ (تتويج الفائزين وحفظ الإحصائيات الدائمة في DB)
+       │ FINISHED  │ (Podium celebration & persist final results to DB)
        └───────────┘
 ```
 
 ---
 
-## 2. خوارزمية توليد الـ Game PIN والحماية من التصادم
+## 2. Game PIN Generation Algorithm & Collision Avoidance
 
-رمز اللعبة (Game PIN) هو الرقم السداسي الفريد الذي يسمح للمتسابقين بالدخول السريع بدون حساب:
+The Game PIN is a 6-digit numeric code that enables fast guest access without requiring prior account registration.
 
-### متطلبات التصميم:
-1. يتكون من 6 أرقام عشوائية غير متوقعة (تجنب الأرقام المتسلسلة التافهة مثل `123456` أو `000000`).
-2. فريد 100% بين جميع الجلسات النشطة في الوقت الحالي.
-3. التحرير التلقائي: بمجرد انتقال الجلسة إلى `FINISHED` أو انتهاء صلاحيتها (`EXPIRED`)، يعود الرمز متاحاً للاستخدام مستقبلاً.
-4. الحماية من هجمات التخمين (Brute-force): تحديد عدد محاولات الدخول الخاطئة لكل عنوان IP (بحد أقصى 5 محاولات في الدقيقة).
-
----
-
-## 3. إدارة الغرف والتزامن اللحظي (Room & Actor Concurrency)
-
-تعتمد KoraPlay على نموذج الممثلين (Actor-based Concurrency) وخادم الـ WebSocket المدمج في إطار عمل Kora:
-
-- **الغرفة ككيان مستقل (Room Entity):**
-  كل جلسة تمثل غرفة مستقلة في الذاكرة تحمل المعرّف الفريد `room_{sessionId}`.
-- **قناة البث العام (Broadcast Channel):**
-  تستخدم لنشر أحداث عامة لجميع الحاضرين (مثل: بدء السؤال، عداد الوقت، إعلان المتصدرين).
-- **قناة البث الخاص (Unicast Channel):**
-  تستخدم لإرسال أحداث مخصصة لمتسابق محدد (مثل: إشعار استلام إجابته، نتيجته الخاصة وبونص السرعة الخاص به دون إطلاع بقية المتسابقين عليه).
+### Design Requirements:
+1. **Entropy & Unpredictability:** 6 randomized digits excluding trivial sequential or repeating patterns (e.g., `123456`, `000000`).
+2. **Absolute Uniqueness:** 100% unique across all currently active sessions.
+3. **Automatic Recycling:** As soon as a session transitions to `FINISHED` or `CANCELLED` (or expires), the PIN is safely released back to the available pool.
+4. **Brute-Force Defense:** Rate-limiting wrong PIN attempts per IP address (maximum 5 attempts per minute).
 
 ---
 
-## 4. استعادة الاتصال دون فقدان التقدم (Reconnection Tolerance)
+## 3. Room Management & Realtime Concurrency (Actor Model)
 
-واحدة من أكبر مشاكل الألعاب التنافسية هي انقطاع شبكة الهاتف (4G/Wi-Fi) لدى المتسابق:
+KoraPlay utilizes an actor-based concurrency model with Kora's native WebSocket engine:
 
-- عند انضمام المتسابق، يمنحه الخادم رمز جلسة فريد وموقع (`participantToken`).
-- إذا انقطع اتصال الـ WebSocket فجأة:
-  1. لا يتم حذف اللاعب فوراً من الجلسة، بل ينتقل إلى حالة `DISCONNECTED` مع مهلة زمنية (Grace Period) مدتها 60 ثانية.
-  2. تحتفظ قاعدة البيانات المؤقتة بنقاطه وسجل إجاباته كما هي.
-  3. عند عودة الاتصال، يرسل العميل حدث `REQUEST_RECONNECT` مصحوباً بالرمز السري `participantToken`.
-  4. يتحقق الخادم من الرمز، ويعيد ربط اتصال الـ WebSocket الجديد بكيان المتسابق الأصلي.
-  5. يقوم السيرفر فوراً بإرسال "حزمة مزامنة الحالة اللحظية" (`STATE_SYNC`) ليظهر للمتسابق السؤال الحالي وعداد الوقت بدقة اللحظة الحالية.
+- **Isolated Room Entity:**
+  Each active game session is represented as an in-memory actor room identified by `room_{sessionId}`.
+- **Broadcast Channel:**
+  Used to publish synchronized public events to all connected clients in the room (e.g., question start, timer ticks, leaderboard reveal).
+- **Unicast Channel:**
+  Used to deliver private, client-specific events (e.g., answer receipt acknowledgment, personal score breakdown, and individual speed bonus without revealing them to peers).
+
+---
+
+## 4. Reconnection Tolerance & Graceful Recovery
+
+Mobile network instability (4G/Wi-Fi drops) is a common challenge in live multiplayer games:
+
+- Upon joining, the server issues a cryptographically secure `participantToken` to the client.
+- If the WebSocket connection drops unexpectedly:
+  1. The participant is not immediately evicted; their status transitions to `DISCONNECTED` with a 60-second grace period.
+  2. The server retains their accumulated score and streak state in memory and Redis.
+  3. Upon reconnecting, the client issues a `REQUEST_RECONNECT` event with the `participantToken`.
+  4. The server validates the token and re-associates the new WebSocket socket with the existing participant record.
+  5. The server immediately dispatches a `STATE_SYNC` packet containing the current question, elapsed time, and state so the participant seamlessly resumes without score loss.

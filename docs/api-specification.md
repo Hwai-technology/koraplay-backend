@@ -1,46 +1,46 @@
-# 📡 مواصفات واجهة برمجة التطبيقات (REST API v1 Specification)
+# 📡 REST API v1 Specification
 
-جميع استجابات الـ REST API تتبع الغلاف المعياري العام لـ Kora: `ResponseEnvelope<T>`.
+All REST API responses follow the standard Kora response envelope: `ResponseEnvelope<T>`.
 
 **Base URL:** `/api/v1`
 
 ---
 
-## 1. التوثيق والمصادقة (Authentication)
+## 1. Authentication & Identity
 
-| الطريقة | المسار | الوصف | الحماية |
+| Method | Endpoint | Description | Access / Authorization |
 |---|---|---|---|
-| `POST` | `/auth/register` | تسجيل حساب جديد (معلم / مسؤول) | عام |
-| `POST` | `/auth/login` | تسجيل الدخول وتوليد Access Token و Refresh Token | عام |
-| `POST` | `/auth/refresh` | تدوير وتجديد الـ Access Token | مصادقة الـ Refresh Token |
-| `POST` | `/auth/logout` | إبطال جلسة المستخدم وإلغاء الـ Token | يحتاج تسجيل دخول |
-| `GET` | `/auth/me` | استرجاع بيانات الحساب الحالي والصلاحيات | يحتاج تسجيل دخول |
+| `POST` | `/auth/register` | Register a new user account (Teacher / Admin) | Public |
+| `POST` | `/auth/login` | Authenticate user and issue Access & Refresh Tokens | Public |
+| `POST` | `/auth/refresh` | Rotate and refresh an Access Token | Refresh Token Bearer |
+| `POST` | `/auth/logout` | Revoke current user session and invalidate token | Authenticated User |
+| `GET` | `/auth/me` | Fetch current user profile and role permissions | Authenticated User |
 
 ---
 
-## 2. إدارة الاختبارات والأسئلة (Quizzes & Questions)
+## 2. Quizzes & Question Bank Management
 
-| الطريقة | المسار | الوصف | الحماية |
+| Method | Endpoint | Description | Access / Authorization |
 |---|---|---|---|
-| `POST` | `/quizzes` | إنشاء اختبار جديد (مسودة) | معلم / مسؤول |
-| `GET` | `/quizzes` | استعراض قائمة اختبارات المعلم مع الفلاتر والصفحات | معلم / مسؤول |
-| `GET` | `/quizzes/{id}` | استرجاع تفاصيل الاختبار وأسئلته | المالك / عام إذا كان منشوراً |
-| `PUT` | `/quizzes/{id}` | تعديل بيانات الاختبار وإعداداته | المالك فقط |
-| `DELETE` | `/quizzes/{id}` | حذف الاختبار وأسئلته | المالك فقط |
-| `POST` | `/quizzes/{id}/publish` | نشر الاختبار وتوليد نسخة متجمدة (Version Snapshot) | المالك فقط |
-| `POST` | `/quizzes/{id}/duplicate` | استنساخ الاختبار لإنشاء نسخة جديدة معدلة | معلم |
-| `POST` | `/quizzes/{id}/questions` | إضافة سؤال جديد إلى الاختبار | المالك فقط |
-| `PUT` | `/quizzes/{id}/questions/{qId}` | تعديل سؤال وخياراته | المالك فقط |
-| `DELETE` | `/quizzes/{id}/questions/{qId}`| حذف سؤال من الاختبار | المالك فقط |
+| `POST` | `/quizzes` | Create a new quiz draft | Teacher / Admin |
+| `GET` | `/quizzes` | List teacher's quizzes with filtering and pagination | Teacher / Admin |
+| `GET` | `/quizzes/{id}` | Retrieve quiz details and question list | Owner / Public if published |
+| `PUT` | `/quizzes/{id}` | Update quiz metadata and settings | Owner Only |
+| `DELETE` | `/quizzes/{id}` | Delete quiz and its questions | Owner Only |
+| `POST` | `/quizzes/{id}/publish` | Publish quiz and generate an immutable version snapshot | Owner Only |
+| `POST` | `/quizzes/{id}/duplicate` | Clone an existing quiz into a new editable draft | Teacher |
+| `POST` | `/quizzes/{id}/questions` | Add a new question to the quiz | Owner Only |
+| `PUT` | `/quizzes/{id}/questions/{qId}` | Update an existing question and its answer choices | Owner Only |
+| `DELETE` | `/quizzes/{id}/questions/{qId}` | Remove a question from the quiz | Owner Only |
 
 ---
 
-## 3. محرك الجلسات والتنافس الحي (Live Game Sessions)
+## 3. Live Game Sessions Engine
 
-| الطريقة | المسار | الوصف | الحماية |
+| Method | Endpoint | Description | Access / Authorization |
 |---|---|---|---|
-| `POST` | `/games` | إطلاق جلسة مسابقة جديدة وتوليد رمز الـ PIN | معلم |
-| `GET` | `/games/{id}` | استرجاع حالة الجلسة وعدد المتسابقين المنضمين | المضيف فقط |
-| `POST` | `/games/join` | التحقق من صحة الـ PIN قبل الاتصال بالـ WebSocket | عام (للمتسابقين) |
-| `GET` | `/games/{id}/leaderboard` | جلب قائمة أفضل المتصدرين الحالية | المضيف |
-| `GET` | `/games/{id}/results` | جلب التقرير والتحليلات النهائية بعد انتهاء اللعبة | المضيف |
+| `POST` | `/games` | Initialize a live game session and generate unique PIN | Teacher |
+| `GET` | `/games/{id}` | Retrieve game session state and joined participant count | Host Only |
+| `POST` | `/games/join` | Validate game PIN and nickname before WebSocket connect | Public (Participants) |
+| `GET` | `/games/{id}/leaderboard` | Fetch current top leaderboard standings | Host |
+| `GET` | `/games/{id}/results` | Fetch final game summary, analytics, and podium results | Host |
